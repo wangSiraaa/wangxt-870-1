@@ -153,8 +153,11 @@ export interface AuditLog {
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem('token');
   const uid = localStorage.getItem('userId');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  if (uid) config.headers['x-test-user-id'] = uid;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else if (uid) {
+    config.headers['x-test-user-id'] = uid;
+  }
   if (config.method !== 'get') {
     const ik = localStorage.getItem('idempotencyKey');
     if (ik) config.headers['x-idempotency-key'] = ik;
@@ -165,12 +168,12 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 api.interceptors.response.use(
   (r) => {
     if (r.data?.success === false) {
-      return Promise.reject(new Error(r.data?.error || '请求失败'));
+      return Promise.reject(new Error(r.data?.message || r.data?.error || '请求失败'));
     }
     return r;
   },
   (e) => {
-    const msg = e.response?.data?.error || e.message || '网络错误';
+    const msg = e.response?.data?.message || e.response?.data?.error || e.message || '网络错误';
     return Promise.reject(new Error(msg));
   }
 );

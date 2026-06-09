@@ -15,7 +15,7 @@ import auditRoutes from './routes/audit.js';
 export const prisma = new PrismaClient();
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 3002;
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -85,6 +85,14 @@ app.get('/api/users', authMiddleware, async (req: Request, res: Response, next) 
       orderBy: { employeeCode: 'asc' },
     });
     res.json({ success: true, data: users });
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.get('/api/users/me', authMiddleware, async (req: Request, res: Response, next) => {
+  try {
+    res.json({ success: true, data: req.user });
   } catch (e) {
     next(e);
   }

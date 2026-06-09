@@ -1,43 +1,43 @@
 {
   "users": {
     "APPLICANT": {
-      "id": "cmq66fkkp0000f07c1o099f9z",
+      "id": "cmq6o6rfu000053mm5ad9fddi",
       "code": "EMP001",
       "name": "赵申请人",
       "role": "APPLICANT"
     },
     "HANDOVER": {
-      "id": "cmq66fkkv0001f07cvubnrwl8",
+      "id": "cmq6o6rg6000153mmggb4a2fc",
       "code": "EMP002",
       "name": "钱交出",
       "role": "HANDOVER"
     },
     "RECEIVER": {
-      "id": "cmq66fkkx0002f07cu6ptyfkn",
+      "id": "cmq6o6rg7000253mmrqt10fy5",
       "code": "EMP003",
       "name": "孙接收",
       "role": "RECEIVER"
     },
     "ASSET_ADMIN": {
-      "id": "cmq66fkkz0003f07c3zi5eq54",
+      "id": "cmq6o6rg8000353mm298emtpj",
       "code": "EMP004",
       "name": "周资产",
       "role": "ASSET_ADMIN"
     },
     "PERMISSION_ADMIN": {
-      "id": "cmq66fkl10004f07cfufrhgdr",
+      "id": "cmq6o6rg9000453mmoqicj47r",
       "code": "EMP005",
       "name": "吴权限",
       "role": "PERMISSION_ADMIN"
     },
     "MANAGER": {
-      "id": "cmq66fkl40005f07cjtf6jwpl",
+      "id": "cmq6o6rga000553mm0qzzc4nf",
       "code": "EMP006",
       "name": "郑主管",
       "role": "MANAGER"
     },
     "AUDITOR": {
-      "id": "cmq66fkl60006f07c4sqltt7a",
+      "id": "cmq6o6rga000653mm7hmf2okx",
       "code": "EMP007",
       "name": "王审计",
       "role": "AUDITOR"
@@ -45,22 +45,22 @@
   },
   "transfers": {
     "DRAFT": {
-      "id": "cmq66fklq000ff07cbzs9xt10",
+      "id": "cmq6o6rgk000f53mmw7v194xg",
       "no": "HG-20260600-001",
       "status": "DRAFT"
     },
     "PENDING_HANDOVER": {
-      "id": "cmq66fklz000lf07c9zrxd1l8",
+      "id": "cmq6o6rgp000l53mmi5uwqjkp",
       "no": "HG-20260600-002",
       "status": "PENDING_HANDOVER"
     },
     "MANAGER_APPROVAL": {
-      "id": "cmq66fkma0016f07cgzlik63n",
+      "id": "cmq6o6rgw001653mm8oj9kl91",
       "no": "HG-20260600-003",
       "status": "MANAGER_APPROVAL"
     },
     "ARCHIVED": {
-      "id": "cmq66fkmh001if07cvajqhvmz",
+      "id": "cmq6o6rh0001i53mmxv3998et",
       "no": "HG-20260500-001",
       "status": "ARCHIVED"
     }

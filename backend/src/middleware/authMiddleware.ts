@@ -37,15 +37,20 @@ export function authMiddleware(
 ) {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith('Bearer ')
-      ? authHeader.slice(7)
-      : (req.headers['x-test-user-id'] as string);
+    const testUserId = req.headers['x-test-user-id'] as string;
+    let token: string | undefined;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.slice(7);
+    } else if (!authHeader && testUserId) {
+      token = testUserId;
+    }
 
     if (!token) {
       throw new UnauthorizedException();
     }
 
-    if (req.headers['x-test-user-id']) {
+    if (!authHeader && testUserId) {
       const userId = token as string;
       prisma.user
         .findUnique({ where: { id: userId } })

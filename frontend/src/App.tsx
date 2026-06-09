@@ -7,6 +7,7 @@ import {
   AuditOutlined,
   LogoutOutlined,
   ProfileOutlined,
+  PlusOutlined,
 } from '@ant-design/icons';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
@@ -19,11 +20,11 @@ import { User, authApi, ROLE_LABEL } from './api';
 const { Header, Sider, Content } = Layout;
 
 const Protected: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [me] = useState<User | null>(() => {
+  const user = (() => {
     const s = localStorage.getItem('user');
-    return s ? JSON.parse(s) : null;
-  });
-  if (!me) return <Navigate to="/login" replace />;
+    return s ? (JSON.parse(s) as User) : null;
+  })();
+  if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
 };
 
@@ -35,19 +36,26 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const s = localStorage.getItem('user');
-    if (s) setUser(JSON.parse(s));
+    if (s) {
+      try {
+        setUser(JSON.parse(s));
+      } catch {}
+    }
   }, [loc.pathname]);
 
   const logout = () => {
-    localStorage.clear();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('idempotencyKey');
     setUser(null);
     nav('/login');
   };
 
   const onLogin = (u: User, token: string) => {
     localStorage.setItem('user', JSON.stringify(u));
-    localStorage.setItem('userId', u.id);
     localStorage.setItem('token', token);
+    localStorage.removeItem('userId');
     setUser(u);
     nav('/');
   };
@@ -57,15 +65,17 @@ const App: React.FC = () => {
   }
   if (loc.pathname === '/login') return <Login onLogin={onLogin} />;
 
+  const canAudit = user?.role === 'AUDITOR' || user?.role === 'MANAGER';
+  const canCreate = user?.role === 'APPLICANT' || user?.role === 'MANAGER';
+
   const menuItems = [
-    { key: '/', icon: <AppstoreOutlined />, label: '申请列表' },
-    { key: '/create', icon: <FileTextOutlined />, label: '新建申请' },
-    {
-      key: '/audit',
-      icon: <AuditOutlined />,
-      label: '审计查询',
-      disabled: user?.role === 'APPLICANT',
-    },
+    { key: '/', icon: <AppstoreOutlined />, label: '交接清单' },
+    ...(canCreate
+      ? [{ key: '/create', icon: <PlusOutlined />, label: '新建申请' }]
+      : []),
+    ...(canAudit
+      ? [{ key: '/audit', icon: <AuditOutlined />, label: '审计追溯' }]
+      : []),
   ];
 
   return (
@@ -104,7 +114,7 @@ const App: React.FC = () => {
         >
           <div style={{ fontSize: 18, fontWeight: 500 }}>
             <ProfileOutlined style={{ marginRight: 8 }} />
-            员工转岗交接清单管理系统
+            员工转岗交接清单管理
           </div>
           <Dropdown
             menu={{
@@ -112,10 +122,16 @@ const App: React.FC = () => {
                 {
                   key: 'profile',
                   icon: <UserOutlined />,
-                  label: `${user?.name} · ${ROLE_LABEL[user!.role]}`,
+                  label: `${user?.name}（${user ? ROLE_LABEL[user.role] : ''}）`,
                   disabled: true,
                 },
-                { type: 'divider' },
+                {
+                  key: 'empcode',
+                  icon: <Badge status="processing" />,
+                  label: `工号: ${user?.employeeCode}`,
+                  disabled: true,
+                },
+                { type: 'divider' as const },
                 {
                   key: 'logout',
                   icon: <LogoutOutlined />,
@@ -125,38 +141,45 @@ const App: React.FC = () => {
               ],
             }}
           >
-            <Badge count={null}>
-              <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Avatar style={{ background: '#1677ff' }}>
-                  {user?.name?.slice(0, 1)}
-                </Avatar>
-                <span>
-                  {user?.name}
-                  <span style={{ color: '#999', fontSize: 12, marginLeft: 4 }}>
-                    {ROLE_LABEL[user!.role]}
-                  </span>
-                </span>
-              </div>
-            </Badge>
+            <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Avatar size="small" style={{ backgroundColor: '#1677ff' }} icon={<UserOutlined />} />
+              <span style={{ color: 'rgba(0,0,0,0.85)' }}>
+                {user?.name}
+              </span>
+            </div>
           </Dropdown>
         </Header>
-        <Content style={{ margin: 16, padding: 20, background: '#fff', borderRadius: 8 }}>
+        <Content style={{ padding: 24, background: '#f5f7fa' }}>
           <Routes>
-            <Route path="/" element={<TransferList user={user!} />} />
+            <Route
+              path="/"
+              element={
+                <Protected>
+                  <TransferList />
+                </Protected>
+              }
+            />
             <Route
               path="/create"
               element={
                 <Protected>
-                  <TransferCreate user={user!} />
+                  <TransferCreate />
                 </Protected>
               }
             />
-            <Route path="/detail/:id" element={<TransferDetail user={user!} />} />
+            <Route
+              path="/transfers/:id"
+              element={
+                <Protected>
+                  <TransferDetail />
+                </Protected>
+              }
+            />
             <Route
               path="/audit"
               element={
                 <Protected>
-                  <AuditPage user={user!} />
+                  <AuditPage />
                 </Protected>
               }
             />

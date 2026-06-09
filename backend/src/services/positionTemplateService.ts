@@ -1,12 +1,13 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
-const prisma = new PrismaClient();
+type TransactionCtx = Prisma.TransactionClient | PrismaClient;
 
 export async function getChecklistItemsByPositionTemplate(
   position: string,
-  department: string
+  department: string,
+  tx: TransactionCtx
 ) {
-  return prisma.positionTemplate.findMany({
+  return tx.positionTemplate.findMany({
     where: {
       OR: [
         { position, department },
@@ -24,18 +25,21 @@ export async function generateChecklistFromTemplate(
   toPosition: string,
   toDepartment: string,
   fromPosition: string,
-  fromDepartment: string
+  fromDepartment: string,
+  tx: TransactionCtx
 ) {
   const fromItems = await getChecklistItemsByPositionTemplate(
     fromPosition,
-    fromDepartment
+    fromDepartment,
+    tx
   );
   const toItems = await getChecklistItemsByPositionTemplate(
     toPosition,
-    toDepartment
+    toDepartment,
+    tx
   );
 
-  const existing = await prisma.checklistItem.findMany({
+  const existing = await tx.checklistItem.findMany({
     where: { transferId },
     select: { itemName: true, category: true },
   });
@@ -61,5 +65,5 @@ export async function generateChecklistFromTemplate(
     sortOrder: idx + existing.length + 1,
   }));
 
-  return prisma.checklistItem.createMany({ data: createData });
+  return tx.checklistItem.createMany({ data: createData });
 }

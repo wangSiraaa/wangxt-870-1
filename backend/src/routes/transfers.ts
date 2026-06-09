@@ -167,7 +167,8 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
           body.toPosition,
           body.toDepartment,
           body.fromPosition,
-          body.fromDepartment
+          body.fromDepartment,
+          tx
         );
       }
 
