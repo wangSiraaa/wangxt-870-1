@@ -43,6 +43,9 @@ import {
   ExclamationCircleOutlined,
   UserOutlined,
   ClockCircleOutlined,
+  CheckSquareOutlined,
+  ClearOutlined,
+  InfoCircleOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
@@ -86,6 +89,10 @@ const TransferDetail: React.FC<Props> = ({ user }) => {
   const [titleForm] = Form.useForm();
   const [timeline, setTimeline] = useState<any[]>([]);
   const [loadingTl, setLoadingTl] = useState(false);
+  const [selectedChecklist, setSelectedChecklist] = useState<string[]>([]);
+  const [batchRemark, setBatchRemark] = useState('');
+  const [batchStatus, setBatchStatus] = useState<ChecklistItemStatus>('CONFIRMED');
+  const [showBatchModal, setShowBatchModal] = useState(false);
 
   const refresh = async () => {
     if (!id) return;
@@ -377,6 +384,114 @@ const TransferDetail: React.FC<Props> = ({ user }) => {
         }
       },
     });
+  };
+
+  const handleBatchComplete = async () => {
+    if (selectedChecklist.length === 0) {
+      message.warning('请先选择要完成的交接项');
+      return;
+    }
+    setShowBatchModal(true);
+  };
+
+  const doBatchComplete = async () => {
+    if (!data) return;
+    const items = selectedChecklist.map((cid) => ({
+      id: cid,
+      status: batchStatus,
+      confirmedById: user.id,
+      confirmedRemark: batchRemark,
+    }));
+    setLoading(true);
+    try {
+      const res = await withIk((ik) =>
+        checklistApi.batchComplete({
+          items,
+          expectedVersion: data!.version,
+          idempotencyKey: ik,
+        })
+      );
+      if (res?.success) {
+        message.success(res.message);
+        setShowBatchModal(false);
+        setSelectedChecklist([]);
+        refresh();
+        fetchTimeline();
+      } else {
+        const failedItems = res?.data?.failedItems || [];
+        if (failedItems.length > 0 && res?.data?.successItems?.length > 0) {
+          message.warning(res.message);
+          Modal.warning({
+            title: `部分完成（${res.data.successItems.length}项成功，${failedItems.length}项失败）`,
+            content: (
+              <div>
+              <div style={{ marginBottom: 8 }}>
+                <b>失败项：</b>
+              </div>
+              <ul>
+                {failedItems.map((f: any, idx: number) => (
+                  <li key={idx} style={{ marginBottom: 6 }}>
+                    <div>
+                      <b style={{ color: '#ff4d4f' }}>{f.itemName || f.id</b>
+                      <ul style={{ marginTop: 4 }}>
+                        {f.errors?.map((e: string, i: number) => (
+                          <li key={i} style={{ color: '#ff4d4f', fontSize: 12 }}>
+                            · {e}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )};
+          } else {
+            Modal.error({
+              title: res.message || '批量完成失败',
+              content: (
+                <ul>
+                  {failedItems.map((f: any, idx: number) => (
+                    <li key={idx} style={{ marginBottom: 6 }}>
+                      <b style={{ color: '#ff4d4f' }}>
+                        {f.itemName || f.id}
+                      </b>
+                      <ul>
+                        {f.errors?.map((e: string, i: number) => (
+                          <li key={i} style={{ color: '#ff4d4f', fontSize: 12 }}>
+                          · {e}
+                        </li>
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+              ),
+            });
+          }
+        }
+        setShowBatchModal(false);
+        setSelectedChecklist([]);
+        refresh();
+        fetchTimeline();
+      }
+    } catch (e: any) {
+      message.error(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectAllPending = () => {
+    if (!data) return;
+    const pending = data.checklistItems
+      .filter(
+        (it) =>
+          !isArchived &&
+          it.status !== 'CONFIRMED' &&
+          it.status !== 'NOT_APPLICABLE'
+      )
+      .map((it) => it.id);
+    setSelectedChecklist(pending);
   };
 
   const checklistCols = [
@@ -890,13 +1005,60 @@ const TransferDetail: React.FC<Props> = ({ user }) => {
             key: 'checklist',
             label: `📋 交接清单 (${data.checklistItems.length})`,
             children: (
-              <Table
-                size="small"
-                rowKey="id"
-                columns={checklistCols as any}
-                dataSource={data.checklistItems}
-                pagination={false}
-              />
+              <>
+                {!isArchived && (
+                  <div
+                    style={{ marginBottom: 12, padding: '8px 12px', background: '#fafafa', borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                  >
+                    <Space>
+                      <span style={{ color: '#666', fontSize: 12 }}>
+                        <InfoCircleOutlined /> 已选择 <b style={{ color: '#1677ff' }}>{selectedChecklist.length}</b> 项
+                      </span>
+                      <Button size="small" onClick={selectAllPending}>
+                        选择所有未完成
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() => setSelectedChecklist([])}
+                        disabled={selectedChecklist.length === 0}
+                      >
+                        清除选择
+                      </Button>
+                    </Space>
+                    <Space>
+                      <Button
+                        size="small"
+                        type="primary"
+                        icon={<CheckSquareOutlined />}
+                        onClick={handleBatchComplete}
+                        disabled={selectedChecklist.length === 0}
+                      >
+                        批量完成
+                      </Button>
+                    </Space>
+                  </div>
+                )}
+                <Table
+                  size="small"
+                  rowKey="id"
+                  rowSelection={
+                    !isArchived
+                      ? {
+                          selectedRowKeys: selectedChecklist,
+                          onChange: (keys) => setSelectedChecklist(keys as string[]),
+                          getCheckboxProps: (record: any) => ({
+                            disabled:
+                              record.status === 'CONFIRMED' ||
+                              record.status === 'NOT_APPLICABLE',
+                          }),
+                        }
+                      : undefined
+                  }
+                  columns={checklistCols as any}
+                  dataSource={data.checklistItems}
+                  pagination={false}
+                />
+              </>
             ),
           },
           {
@@ -1014,6 +1176,51 @@ const TransferDetail: React.FC<Props> = ({ user }) => {
           },
         ]}
       />
+
+      <Modal
+        title={`批量完成交接项（已选 ${selectedChecklist.length} 项）`}
+        open={showBatchModal}
+        onOk={doBatchComplete}
+        onCancel={() => setShowBatchModal(false)}
+        okText="确认完成"
+        cancelText="取消"
+        confirmLoading={loading}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <AlertMsg type="info" msg={`将对以下 ${selectedChecklist.length} 项执行状态变更操作，系统将先校验再写入，失败项将直接返回。`} />
+        </div>
+        <Form layout="vertical">
+          <Form.Item label="目标状态" required>
+            <Select
+              value={batchStatus}
+              onChange={(v) => setBatchStatus(v as ChecklistItemStatus)}
+              options={[
+                { label: '已确认 (CONFIRMED)', value: 'CONFIRMED' },
+                { label: '不适用 (NOT_APPLICABLE)', value: 'NOT_APPLICABLE' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item label="统一备注（选填）">
+            <Input.TextArea
+              value={batchRemark}
+              onChange={(e) => setBatchRemark(e.target.value)}
+              rows={3}
+              placeholder="为所有选中项填写统一的备注说明（每项可单独备注则使用单项确认）"
+            />
+          </Form.Item>
+          <Form.Item label="确认人">
+            <Input disabled value={`${user.name}（${ROLE_LABEL[user.role]}）`} />
+          </Form.Item>
+          <div style={{ padding: 8, background: '#fafafa', borderRadius: 4, fontSize: 12, color: '#666' }}>
+            <b>操作提示：</b>
+            <ul style={{ paddingLeft: 16, margin: '4px 0' }}>
+              <li>所有选中项需通过校验后才会写入数据库</li>
+              <li>如果有校验失败的项，系统会分别列出失败原因</li>
+              <li>部分通过时，成功的项会被写入，失败的项原样保留</li>
+            </ul>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 };

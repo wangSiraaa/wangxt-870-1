@@ -8,6 +8,7 @@ import {
   LogoutOutlined,
   ProfileOutlined,
   PlusOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
@@ -15,6 +16,7 @@ import TransferList from './pages/TransferList';
 import TransferDetail from './pages/TransferDetail';
 import TransferCreate from './pages/TransferCreate';
 import AuditPage from './pages/AuditPage';
+import ChecklistQuery from './pages/ChecklistQuery';
 import { User, authApi, ROLE_LABEL } from './api';
 
 const { Header, Sider, Content } = Layout;
@@ -70,6 +72,7 @@ const App: React.FC = () => {
 
   const menuItems = [
     { key: '/', icon: <AppstoreOutlined />, label: '交接清单' },
+    { key: '/checklist-query', icon: <SearchOutlined />, label: '关联查询' },
     ...(canCreate
       ? [{ key: '/create', icon: <PlusOutlined />, label: '新建申请' }]
       : []),
@@ -180,6 +183,14 @@ const App: React.FC = () => {
               element={
                 <Protected>
                   <AuditPage />
+                </Protected>
+              }
+            />
+            <Route
+              path="/checklist-query"
+              element={
+                <Protected>
+                  <ChecklistQuery />
                 </Protected>
               }
             />

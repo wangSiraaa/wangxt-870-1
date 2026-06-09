@@ -208,6 +208,10 @@ export const transferApi = {
 export const checklistApi = {
   list: (params?: any) => api.get('/checklist', { params }).then((r) => r.data.data),
   update: (id: string, data: any) => api.put(`/checklist/${id}`, data).then((r) => r.data.data),
+  relatedQuery: (params?: any) =>
+    api.get('/checklist/related-query', { params }).then((r) => r.data.data),
+  batchComplete: (data: any) =>
+    api.post('/checklist/batch-complete', data).then((r) => r.data),
 };
 
 export const assetsApi = {
