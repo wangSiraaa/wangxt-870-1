@@ -1,0 +1,68 @@
+{
+  "users": {
+    "APPLICANT": {
+      "id": "cmq66fkkp0000f07c1o099f9z",
+      "code": "EMP001",
+      "name": "赵申请人",
+      "role": "APPLICANT"
+    },
+    "HANDOVER": {
+      "id": "cmq66fkkv0001f07cvubnrwl8",
+      "code": "EMP002",
+      "name": "钱交出",
+      "role": "HANDOVER"
+    },
+    "RECEIVER": {
+      "id": "cmq66fkkx0002f07cu6ptyfkn",
+      "code": "EMP003",
+      "name": "孙接收",
+      "role": "RECEIVER"
+    },
+    "ASSET_ADMIN": {
+      "id": "cmq66fkkz0003f07c3zi5eq54",
+      "code": "EMP004",
+      "name": "周资产",
+      "role": "ASSET_ADMIN"
+    },
+    "PERMISSION_ADMIN": {
+      "id": "cmq66fkl10004f07cfufrhgdr",
+      "code": "EMP005",
+      "name": "吴权限",
+      "role": "PERMISSION_ADMIN"
+    },
+    "MANAGER": {
+      "id": "cmq66fkl40005f07cjtf6jwpl",
+      "code": "EMP006",
+      "name": "郑主管",
+      "role": "MANAGER"
+    },
+    "AUDITOR": {
+      "id": "cmq66fkl60006f07c4sqltt7a",
+      "code": "EMP007",
+      "name": "王审计",
+      "role": "AUDITOR"
+    }
+  },
+  "transfers": {
+    "DRAFT": {
+      "id": "cmq66fklq000ff07cbzs9xt10",
+      "no": "HG-20260600-001",
+      "status": "DRAFT"
+    },
+    "PENDING_HANDOVER": {
+      "id": "cmq66fklz000lf07c9zrxd1l8",
+      "no": "HG-20260600-002",
+      "status": "PENDING_HANDOVER"
+    },
+    "MANAGER_APPROVAL": {
+      "id": "cmq66fkma0016f07cgzlik63n",
+      "no": "HG-20260600-003",
+      "status": "MANAGER_APPROVAL"
+    },
+    "ARCHIVED": {
+      "id": "cmq66fkmh001if07cvajqhvmz",
+      "no": "HG-20260500-001",
+      "status": "ARCHIVED"
+    }
+  }
+}

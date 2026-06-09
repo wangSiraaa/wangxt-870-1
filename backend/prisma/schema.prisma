@@ -1,0 +1,280 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  APPLICANT
+  HANDOVER
+  RECEIVER
+  ASSET_ADMIN
+  PERMISSION_ADMIN
+  MANAGER
+  AUDITOR
+}
+
+enum TransferStatus {
+  DRAFT
+  PENDING_HANDOVER
+  ASSET_VERIFICATION
+  PERMISSION_CONFIRMATION
+  MANAGER_APPROVAL
+  RETURNED_FOR_CORRECTION
+  PENDING_ARCHIVE
+  ARCHIVED
+}
+
+enum ChecklistItemStatus {
+  PENDING
+  CONFIRMED
+  NOT_APPLICABLE
+  RETURNED
+}
+
+enum AssetStatus {
+  IN_POSSESSION
+  RETURNED
+  MISSING
+  COMPENSATED
+  DAMAGED
+}
+
+enum PermissionStatus {
+  TO_BE_TRANSFERRED
+  FIRST_CONFIRMED
+  TRANSFERRED
+  REVOKED
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+  RETURNED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  CONFIRM
+  ADVANCE_STATUS
+  APPROVE
+  REJECT
+  RETURN
+  ARCHIVE
+  LOGIN
+  EXPORT
+}
+
+model User {
+  id           String   @id @default(cuid())
+  employeeCode String   @unique
+  name         String
+  email        String   @unique
+  department   String
+  position     String
+  role         UserRole
+  passwordHash String?  @default("$2a$10$placeholder")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdTransfers      TransferApplication[] @relation("Creator")
+  fromTransfers         TransferApplication[] @relation("FromEmployee")
+  toTransfers           TransferApplication[] @relation("ToEmployee")
+  approvedTransfers     TransferApplication[] @relation("Approver")
+  confirmedChecklist    ChecklistItem[]     @relation("ChecklistConfirmer")
+  confirmedAssets       AssetHandover[]     @relation("AssetConfirmer")
+  firstConfirmedPerms   PermissionConfirmation[] @relation("FirstConfirmer")
+  secondConfirmedPerms  PermissionConfirmation[] @relation("SecondConfirmer")
+  transferredPerms      PermissionConfirmation[] @relation("TransferredTo")
+  approvals             ApprovalRecord[]
+  auditLogs             AuditLog[]
+}
+
+model PositionTemplate {
+  id          String   @id @default(cuid())
+  position    String
+  department  String
+  itemName    String
+  category    String
+  description String?
+  isCritical  Boolean  @default(false)
+  sortOrder   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([position, department, itemName])
+}
+
+model TransferApplication {
+  id             String         @id @default(cuid())
+  title          String
+  transferNo     String         @unique
+  fromEmployeeId String
+  toEmployeeId   String
+  creatorId      String
+  approverId     String?
+  effectiveDate  DateTime
+  status         TransferStatus @default(DRAFT)
+  fromDepartment String
+  toDepartment   String
+  fromPosition   String
+  toPosition     String
+  reason         String?
+  remark         String?
+  version        Int            @default(1)
+  returnedReason String?
+  returnedAt     DateTime?
+  archivedAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  fromEmployee     User                     @relation("FromEmployee", fields: [fromEmployeeId], references: [id])
+  toEmployee       User                     @relation("ToEmployee", fields: [toEmployeeId], references: [id])
+  creator          User                     @relation("Creator", fields: [creatorId], references: [id])
+  approver         User?                    @relation("Approver", fields: [approverId], references: [id])
+  checklistItems   ChecklistItem[]
+  assets           AssetHandover[]
+  permissions      PermissionConfirmation[]
+  approvals        ApprovalRecord[]
+  auditLogs        AuditLog[]
+  idempotencyKeys  IdempotencyRecord[]
+}
+
+model ChecklistItem {
+  id              String              @id @default(cuid())
+  transferId      String
+  category        String
+  itemName        String
+  description     String?
+  isCritical      Boolean             @default(false)
+  status          ChecklistItemStatus @default(PENDING)
+  sortOrder       Int
+  confirmedById   String?
+  confirmedAt     DateTime?
+  confirmedRemark String?
+  confirmedVersion Int?
+  returnedReason  String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  transfer    TransferApplication @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  confirmedBy User?               @relation("ChecklistConfirmer", fields: [confirmedById], references: [id])
+
+  @@index([transferId])
+}
+
+model AssetHandover {
+  id               String      @id @default(cuid())
+  transferId       String
+  assetCode        String
+  assetName        String
+  category         String
+  specification    String?
+  quantity         Int         @default(1)
+  status           AssetStatus @default(IN_POSSESSION)
+  confirmedById    String?
+  confirmedAt      DateTime?
+  confirmedVersion Int?
+  compensationNote String?
+  compensationFee  Decimal?
+  returnedReason   String?
+  remark           String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  transfer    TransferApplication @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  confirmedBy User?               @relation("AssetConfirmer", fields: [confirmedById], references: [id])
+
+  @@index([transferId])
+}
+
+model PermissionConfirmation {
+  id                String           @id @default(cuid())
+  transferId        String
+  systemName        String
+  permissionName    String
+  permissionScope   String?
+  status            PermissionStatus @default(TO_BE_TRANSFERRED)
+  firstConfirmerId  String?
+  firstConfirmedAt  DateTime?
+  firstConfirmVersion Int?
+  secondConfirmerId String?
+  secondConfirmedAt DateTime?
+  secondConfirmVersion Int?
+  transferredToId   String?
+  returnedReason    String?
+  remark            String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  transfer         TransferApplication @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  firstConfirmer   User?               @relation("FirstConfirmer", fields: [firstConfirmerId], references: [id])
+  secondConfirmer  User?               @relation("SecondConfirmer", fields: [secondConfirmerId], references: [id])
+  transferredTo    User?               @relation("TransferredTo", fields: [transferredToId], references: [id])
+
+  @@index([transferId])
+}
+
+model ApprovalRecord {
+  id           String           @id @default(cuid())
+  transferId   String
+  approverId   String
+  decision     ApprovalDecision
+  comment      String?
+  approvedAt   DateTime         @default(now())
+  idempotencyKey String?        @unique
+  version      Int
+  createdAt    DateTime         @default(now())
+
+  transfer   TransferApplication @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  approver   User                @relation(fields: [approverId], references: [id])
+
+  @@index([transferId])
+  @@index([idempotencyKey])
+}
+
+model IdempotencyRecord {
+  id             String   @id @default(cuid())
+  idempotencyKey String   @unique
+  transferId     String?
+  endpoint       String
+  method         String
+  responseBody   Json
+  statusCode     Int
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+
+  transfer TransferApplication? @relation(fields: [transferId], references: [id], onDelete: Cascade)
+
+  @@index([transferId])
+  @@index([expiresAt])
+}
+
+model AuditLog {
+  id             String      @id @default(cuid())
+  transferId     String?
+  userId         String?
+  action         AuditAction
+  entityType     String
+  entityId       String?
+  oldValue       Json?
+  newValue       Json?
+  ipAddress      String?
+  userAgent      String?
+  detail         String?
+  version        Int?
+  createdAt      DateTime    @default(now())
+
+  transfer TransferApplication? @relation(fields: [transferId], references: [id], onDelete: SetNull)
+  user     User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([transferId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
